@@ -1,0 +1,53 @@
+---
+- name: Install SSH key for maintainer remote access
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Ensure SSH is installed
+      ansible.builtin.apt:
+        name: openssh-server
+        state: present
+
+    - name: Ensure SSH service is running and enabled
+      ansible.builtin.systemd:
+        name: ssh
+        state: started
+        enabled: yes
+
+    - name: Create .ssh directory for maintainer
+      ansible.builtin.file:
+        path: /home/maintainer/.ssh
+        state: directory
+        owner: maintainer
+        group: maintainer
+        mode: "0700"
+
+    - name: Copy SSH public key to authorized_keys
+      ansible.builtin.copy:
+        #!!!!! src: /home/YOUR_USERNAME/.ssh/id_rsa.pub  # Replace YOUR_USERNAME with your actual user on the control machine
+        dest: /home/maintainer/.ssh/authorized_keys
+        owner: maintainer
+        group: maintainer
+        mode: "0600"
+
+    - name: Ensure SSH allows key authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+        backup: yes
+
+    - name: Ensure SSH public key authentication is enabled
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PubkeyAuthentication"
+        line: "PubkeyAuthentication yes"
+        state: present
+        backup: yes
+
+    - name: Restart SSH service to apply changes
+      ansible.builtin.systemd:
+        name: ssh
+        state: restarted

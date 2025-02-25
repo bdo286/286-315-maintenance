@@ -1,0 +1,50 @@
+---
+- name: Install software for students
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Update package lists
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install required software from APT
+      ansible.builtin.apt:
+        name:
+          - code            # VS Code
+          - krita           # Digital painting
+          - inkscape        # Vector graphics
+          - gimp            # Image editing
+          - audacity        # Audio editing
+          - libreoffice     # Office suite
+          - sqlite3         # Lightweight database
+          - dbeaver         # GUI database manager
+          - okular          # Document viewer
+          - xournalpp       # PDF annotation tool
+          - pdfarranger     # PDF editor
+          - thonny          # Python IDE for beginners
+          - obs-studio      # Screen recording
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install Google Chrome
+      ansible.builtin.shell: |
+        wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        apt install -y /tmp/google-chrome.deb
+      args:
+        executable: /bin/bash
+
+    - name: Ensure student can access installed applications
+      ansible.builtin.file:
+        path: "/home/student/.local/share/applications"
+        state: directory
+        owner: student
+        group: student
+        mode: "0755"
+
+    - name: Ensure all applications are available in the menu
+      ansible.builtin.command:
+        cmd: update-desktop-database /home/student/.local/share/applications
+      become_user: student
+      ignore_errors: yes

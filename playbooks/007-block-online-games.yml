@@ -1,0 +1,95 @@
+---
+- name: Block online games and casinos by modifying /etc/hosts
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Define blocked gaming and casino domains
+      set_fact:
+        blocked_sites:
+          # ✅ Online Counter-Strike & FPS Games
+          - "play-cs.com"
+          - "cs-online.club"
+          - "cswarzone.com"
+          - "csgo-clicker.com"
+          - "counterstrikeonline.net"
+          - "csonlinegame.com"
+          - "csgo-roll.com"
+          - "csgo500.com"
+          - "globaloffensive.com"
+          - "csgofast.com"
+          - "csgopolygon.com"
+          - "csgogem.com"
+          - "csgocases.com"
+          - "csgolounge.com"
+          - "csgobattle.com"
+
+          # ✅ Other Popular Online Games
+          - "www.roblox.com"
+          - "roblox.com"
+          - "brawlstars.com"
+          - "epicgames.com"
+          - "fortnite.com"
+          - "store.steampowered.com"
+          - "tlauncher.org"  # Minecraft cracked launcher
+          - "crazygames.com"
+          - "poki.com"
+          - "unblockedgames.com"
+          - "y8.com"
+          - "agame.com"
+          - "miniclip.com"
+          - "coolmathgames.com"
+          - "kbhgames.com"
+          - "kongregate.com"
+          - "addictinggames.com"
+          - "friv.com"
+          - "gamedistribution.com"
+          - "gameflare.com"
+          - "silvergames.com"
+          - "armorgames.com"
+          - "shockwave.com"
+          - "gogy.com"
+          - "yepi.com"
+          - "playok.com"
+
+          # ✅ Casino & Gambling Sites
+          - "casino.com"
+          - "free-casino-games.com"
+          - "bet365.com"
+          - "pokerstars.com"
+          - "1xbet.com"
+          - "888casino.com"
+          - "leovegas.com"
+          - "casinowinner.com"
+          - "stake.com"
+          - "unibet.com"
+          - "jackpotcitycasino.com"
+          - "bovada.lv"
+          - "casumo.com"
+          - "bitstarz.com"
+          - "mbitcasino.com"
+
+    - name: Set prank redirect URL
+      set_fact:
+        prank_url: "142.250.190.46 youtube.com/watch?v=dQw4w9WgXcQ"
+
+    - name: Add prank website to hosts file
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ prank_url }}"
+        state: present
+
+    - name: Redirect blocked sites to prank page
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 {{ item }}"
+        state: present
+      loop: "{{ blocked_sites }}"
+
+    - name: Flush DNS cache (for immediate effect)
+      ansible.builtin.command: systemctl restart systemd-resolved
+      ignore_errors: yes
+
+    - name: Notify about the prank
+      ansible.builtin.debug:
+        msg: "Online gaming & casino sites are now redirected to prank-website.local!"

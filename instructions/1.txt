@@ -25,3 +25,9 @@ crontab -e
 ansible-playbook -i ~/286-315-maintenance/inventory.ini ~/286-315-maintenance/playbooks/001-create-student.yml
 
 sudo reboot
+
+--- wol and poeroff
+
+chmod +x poweroff-all.sh
+chmod +x get-all-macs.sh
+chmod +x wake-all.sh

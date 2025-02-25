@@ -1,0 +1,127 @@
+---
+- name: Install Docker and LEMP Stack via Docker Compose
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Update package lists
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Add student user to the docker group
+      ansible.builtin.user:
+        name: student
+        groups: docker
+        append: yes
+
+    - name: Enable and start Docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Create LEMP project directory
+      ansible.builtin.file:
+        path: /home/student/lemp-docker
+        state: directory
+        owner: student
+        group: student
+        mode: "0755"
+
+    - name: Copy Docker Compose file for LEMP stack
+      ansible.builtin.copy:
+        dest: /home/student/lemp-docker/docker-compose.yml
+        content: |
+          version: "3.8"
+          services:
+            nginx:
+              image: nginx:latest
+              container_name: lemp_nginx
+              ports:
+                - "8080:80"
+              volumes:
+                - ./nginx.conf:/etc/nginx/nginx.conf
+                - ./html:/var/www/html
+              depends_on:
+                - php
+                - mysql
+
+            php:
+              image: php:8.1-fpm
+              container_name: lemp_php
+              volumes:
+                - ./html:/var/www/html
+                - ./php.ini:/usr/local/etc/php/php.ini
+
+            mysql:
+              image: mysql:8.0
+              container_name: lemp_mysql
+              restart: always
+              environment:
+                MYSQL_ROOT_PASSWORD: rootpassword
+                MYSQL_DATABASE: studentdb
+                MYSQL_USER: student
+                MYSQL_PASSWORD: studentpassword
+              ports:
+                - "3306:3306"
+              volumes:
+                - mysql_data:/var/lib/mysql
+
+          volumes:
+            mysql_data:
+
+    - name: Copy example index.php file
+      ansible.builtin.copy:
+        dest: /home/student/lemp-docker/html/index.php
+        content: |
+          <?php
+          phpinfo();
+          ?>
+
+    - name: Copy example nginx.conf file
+      ansible.builtin.copy:
+        dest: /home/student/lemp-docker/nginx.conf
+        content: |
+          events { }
+          http {
+            server {
+              listen 80;
+              root /var/www/html;
+              index index.php index.html;
+              location / {
+                try_files $uri $uri/ =404;
+              }
+              location ~ \.php$ {
+                fastcgi_pass lemp_php:9000;
+                fastcgi_index index.php;
+                include fastcgi.conf;
+              }
+            }
+          }
+
+    - name: Ensure student owns the LEMP directory
+      ansible.builtin.file:
+        path: /home/student/lemp-docker
+        state: directory
+        owner: student
+        group: student
+        mode: "0755"
+        recurse: yes
+
+    - name: Start LEMP stack
+      ansible.builtin.command:
+        cmd: docker-compose up -d
+        chdir: /home/student/lemp-docker
+      become_user: student

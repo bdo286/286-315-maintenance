@@ -1,0 +1,69 @@
+---
+- name: Configure Ukrainian localization and keyboard layout
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Install Ukrainian language pack
+      ansible.builtin.apt:
+        name:
+          - language-pack-uk
+          - language-pack-gnome-uk
+          - manpages-uk
+          - hunspell-uk
+          - libreoffice-l10n-uk
+          - libreoffice-help-uk
+          - fonts-noto-cjk
+        state: present
+        update_cache: yes
+
+    - name: Set system-wide locale to Ukrainian
+      ansible.builtin.command:
+        cmd: localectl set-locale LANG=uk_UA.UTF-8
+
+    - name: Ensure Ukrainian locale is generated
+      ansible.builtin.command:
+        cmd: locale-gen uk_UA.UTF-8
+
+    - name: Set default keyboard layout to Ukrainian
+      ansible.builtin.command:
+        cmd: localectl set-keymap ua
+
+    - name: Set Ukrainian keyboard layout for the student user
+      ansible.builtin.blockinfile:
+        path: /home/student/.profile
+        create: yes
+        owner: student
+        group: student
+        mode: "0644"
+        block: |
+          export LANG=uk_UA.UTF-8
+          export LANGUAGE=uk_UA.UTF-8
+          export LC_ALL=uk_UA.UTF-8
+          setxkbmap ua
+
+    - name: Ensure Ukrainian is set as the default language for Cinnamon
+      ansible.builtin.blockinfile:
+        path: /home/student/.config/environment.d/lang.conf
+        create: yes
+        owner: student
+        group: student
+        mode: "0644"
+        block: |
+          LANG=uk_UA.UTF-8
+          LANGUAGE=uk_UA.UTF-8
+          LC_ALL=uk_UA.UTF-8
+
+    - name: Apply keyboard layout changes
+      ansible.builtin.command:
+        cmd: setxkbmap ua
+      become_user: student
+
+    - name: Restart systemd-localed to apply changes
+      ansible.builtin.systemd:
+        name: systemd-localed
+        state: restarted
+
+    - name: Notify user about the changes
+      ansible.builtin.debug:
+        msg: "Ukrainian localization and keyboard layout have been set. A reboot is recommended."

@@ -1,0 +1,27 @@
+---
+- name: Install Microsoft Teams via Snap
+  hosts: local
+  become: true
+  tasks:
+
+    - name: Ensure Snap is installed
+      ansible.builtin.apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Install Microsoft Teams via Snap
+      community.general.snap:
+        name: teams
+        classic: true
+
+    - name: Verify Teams installation
+      ansible.builtin.command:
+        cmd: teams --version
+      register: teams_version
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display installed Teams version
+      ansible.builtin.debug:
+        msg: "Microsoft Teams installed successfully. Version: {{ teams_version.stdout | default('Unknown') }}"
