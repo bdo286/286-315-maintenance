@@ -1,0 +1,81 @@
+---
+- name: Create the student user with no password and restricted permissions
+  hosts: localhost
+  become: true
+  tasks:
+
+    - name: Ensure the student user exists with no password
+      ansible.builtin.user:
+        name: student
+        shell: /bin/bash
+        home: /home/student
+        create_home: yes
+        groups: student
+        append: no
+        password_lock: true  # Ensures no password is set
+
+    - name: Ensure student home directory permissions are correct
+      ansible.builtin.file:
+        path: /home/student
+        owner: student
+        group: student
+        mode: "0700"
+
+    - name: Prevent student from using sudo
+      ansible.builtin.file:
+        path: /etc/sudoers.d/student
+        state: absent  # Ensures there's no sudoers entry for the student user
+
+    - name: Set a default wallpaper
+      ansible.builtin.copy:
+        src: /usr/share/backgrounds/default.jpg
+        dest: /home/student/.background.jpg
+        owner: student
+        group: student
+        mode: "0644"
+
+    - name: Enforce wallpaper via dconf (GNOME-based desktops)
+      ansible.builtin.command:
+        cmd: dconf write /org/gnome/desktop/background/picture-uri "'file:///home/student/.background.jpg'"
+      become_user: student
+      ignore_errors: yes
+
+    - name: Block student from changing wallpaper (GNOME desktops)
+      ansible.builtin.command:
+        cmd: dconf write /org/gnome/desktop/background/picture-options "'none'"
+      become_user: student
+      ignore_errors: yes
+
+    - name: Lock wallpaper settings (GNOME-based desktops)
+      ansible.builtin.file:
+        path: /home/student/.config/dconf/user
+        mode: "0444"  # Read-only, prevents modification
+        owner: root
+        group: root
+
+    - name: Ensure gsettings override prevents changes (GNOME)
+      ansible.builtin.blockinfile:
+        path: /etc/dconf/db/local.d/00-wallpaper
+        create: yes
+        block: |
+          [org/gnome/desktop/background]
+          picture-uri='file:///home/student/.background.jpg'
+          picture-options='none'
+
+    - name: Apply dconf settings
+      ansible.builtin.command: dconf update
+
+    - name: Enable auto-login for student (GNOME-based)
+      ansible.builtin.blockinfile:
+        path: /etc/gdm3/custom.conf
+        create: yes
+        block: |
+          [daemon]
+          AutomaticLoginEnable=True
+          AutomaticLogin=student
+      notify: Restart GDM
+
+  handlers:
+    - name: Restart GDM
+      ansible.builtin.command: systemctl restart gdm3
+      ignore_errors: yes
