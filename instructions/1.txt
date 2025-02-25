@@ -1,0 +1,21 @@
+sudo apt update && sudo apt install -y ansible git
+
+sudo usermod -aG sudo maintainer
+
+su - maintainer
+
+git clone https://github.com/bdo286/286-315-maintenance.git ~/286-315-maintenance
+
+chown -R maintainer:maintainer ~/classroom-ansible
+
+touch ~/.ansible-playbook-history
+
+Create a script, e.g., ~/run-ansible.sh:
+
+chmod +x ~/run-ansible.sh
+
+crontab -e
+
+*/15 * * * * ~/run-ansible.sh >> ~/ansible.log 2>&1
+
+~/run-ansible.sh
