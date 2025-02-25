@@ -19,3 +19,9 @@ crontab -e
 */15 * * * * ~/run-ansible.sh >> ~/ansible.log 2>&1
 
 ~/run-ansible.sh
+
+--- new: 
+
+ansible-playbook -i ~/286-315-maintenance/inventory.ini ~/286-315-maintenance/playbooks/001-create-student.yml
+
+sudo reboot
